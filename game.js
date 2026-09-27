@@ -155,6 +155,103 @@ function makeCar(x,z,rot=0){
 const car=makeCar(0,12,Math.PI);
 let carNear=false;
 
+// NPCs + traffic + simple wanted/police system
+const npcs=[];
+const traffic=[];
+const police=[];
+const npcColors=[0x2f6f9f,0x9a4d4d,0x4f8055,0x8a6a3f,0x6d4f86];
+
+function makeNPC(x,z){
+  const npc=new THREE.Group();
+  const shirt=new THREE.Mesh(new THREE.BoxGeometry(.7,1.1,.45),new THREE.MeshStandardMaterial({color:npcColors[npcs.length%npcColors.length]}));
+  shirt.position.y=.65;shirt.castShadow=true;npc.add(shirt);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.27,12,8),new THREE.MeshStandardMaterial({color:0xb98261}));
+  head.position.y=1.45;head.castShadow=true;npc.add(head);
+  npc.position.set(x,0,z);scene.add(npc);
+  npcs.push({group:npc,dir:new THREE.Vector3(Math.random()-.5,0,Math.random()-.5).normalize(),speed:1.1+Math.random()*.7,turn:1+Math.random()*3});
+}
+
+for(let n=0;n<18;n++){
+  const x=Math.round((Math.random()*270-135)/15)*15;
+  const z=Math.round((Math.random()*270-135)/15)*15;
+  makeNPC(x+((n%2)*3-1.5),z+((n%3)*3-3));
+}
+
+function makeTrafficCar(x,z,rot,color){
+  const c=makeCar(x,z,rot);
+  c.children[0].material=new THREE.MeshStandardMaterial({color,metalness:.2,roughness:.4});
+  return c;
+}
+for(let n=0;n<6;n++){
+  const horizontal=n%2===0;
+  const lane=(Math.floor(n/2)*30)-60;
+  const c=makeTrafficCar(horizontal?-145:lane,horizontal?lane:-145,horizontal?0:Math.PI/2,[0x315f9a,0x2f7d4a,0xc07b2a,0x8d3b66,0x777777,0x3d6b73][n]);
+  traffic.push({group:c,horizontal,speed:5+n%3});
+}
+
+function makePolice(x,z){
+  const p=makeTrafficCar(x,z,0,0x202a45);
+  const light=new THREE.Mesh(new THREE.BoxGeometry(1.2,.18,.5),new THREE.MeshStandardMaterial({color:0x3d8cff,emissive:0x174cff,emissiveIntensity:1.5}));
+  light.position.y=1.55;light.castShadow=true;p.add(light);
+  scene.add(p);police.push(p);return p;
+}
+function spawnPolice(){
+  if(police.length>=3)return;
+  for(let n=police.length;n<Math.min(3,wanted);n++){
+    const a=Math.random()*Math.PI*2,d=22+Math.random()*12;
+    makePolice(car.position.x+Math.cos(a)*d,car.position.z+Math.sin(a)*d);
+  }
+}
+
+let wanted=0,wantedTimer=0;
+function addWanted(level=1){
+  wanted=Math.min(3,wanted+level);wantedTimer=18;spawnPolice();
+  setMessage("WANTED • Police are searching");
+  document.querySelector("#wanted").textContent="⭐".repeat(wanted);
+}
+function updateNPCs(dt){
+  for(const p of npcs){
+    p.turn-=dt;
+    if(p.turn<=0){p.turn=1+Math.random()*3;p.dir.set(Math.random()-.5,0,Math.random()-.5).normalize()}
+    p.group.position.addScaledVector(p.dir,p.speed*dt);
+    if(Math.abs(p.group.position.x)>150||Math.abs(p.group.position.z)>150)p.dir.multiplyScalar(-1);
+    p.group.position.x=THREE.MathUtils.clamp(p.group.position.x,-150,150);
+    p.group.position.z=THREE.MathUtils.clamp(p.group.position.z,-150,150);
+  }
+  for(const t of traffic){
+    const s=t.speed*dt;
+    if(t.horizontal){t.group.position.x+=s;if(t.group.position.x>155)t.group.position.x=-155}
+    else{t.group.position.z+=s;if(t.group.position.z>155)t.group.position.z=-155}
+  }
+  if(state.inCar){
+    for(const p of npcs){
+      if(p.group.position.distanceTo(car.position)<2.1){
+        p.group.position.x+=car.position.x-p.group.position.x;
+        p.group.position.z+=car.position.z-p.group.position.z;
+        addWanted(1);
+      }
+    }
+  }
+  if(wanted>0){
+    wantedTimer-=dt;
+    spawnPolice();
+    for(const p of police){
+      const dx=car.position.x-p.position.x,dz=car.position.z-p.position.z;
+      const len=Math.hypot(dx,dz)||1;
+      p.position.x+=dx/len*(5.5+wanted)*dt;
+      p.position.z+=dz/len*(5.5+wanted)*dt;
+      p.rotation.y=Math.atan2(dx,dz);
+      if(len<3.2){
+        state.carSpeed*=.92;
+        setMessage("POLICE • Lose them!");
+      }
+    }
+    if(wantedTimer<=0 && police.every(p=>p.position.distanceTo(car.position)>28)){
+      wanted=0;document.querySelector("#wanted").textContent="";setMessage("Wanted level cleared");
+    }
+  }
+}
+
 function toggleCar(){
   const dx=player.position.x-car.position.x,dz=player.position.z-car.position.z;
   if(!state.inCar && Math.hypot(dx,dz)<4){
@@ -192,6 +289,7 @@ addEventListener("keydown",e=>{keys[e.code]=true;if(e.code==="Space")jump();if(e
 addEventListener("keyup",e=>keys[e.code]=false);
 
 function update(dt){
+  updateNPCs(dt);
   let mx=state.moveX,mz=state.moveZ;
   if(keys.KeyA||keys.ArrowLeft)mx=-1;
   if(keys.KeyD||keys.ArrowRight)mx=1;
