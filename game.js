@@ -107,7 +107,7 @@ const legMat=new THREE.MeshStandardMaterial({color:0x20252d});
 for(const sx of [-.3,.3]){const leg=new THREE.Mesh(new THREE.BoxGeometry(.28,1.0,.38),legMat);leg.position.set(sx,-.35,0);leg.castShadow=true;player.add(leg);}
 player.position.set(0,0,25);scene.add(player);
 
-const state={moveX:0,moveZ:0,vy:0,onGround:true,speed:7,inside:false};
+const state={moveX:0,moveZ:0,vy:0,onGround:true,speed:7,inside:false,inCar:false,carSpeed:0};
 const clock=new THREE.Clock();
 
 function setMessage(t){document.querySelector("#message").textContent=t}
@@ -133,11 +133,42 @@ function enterBuilding(){
   }
 }
 function jump(){
-  if(state.inside)return;
+  if(state.inside||state.inCar)return;
   if(state.onGround){state.vy=7.5;state.onGround=false}
 }
+
+function makeCar(x,z,rot=0){
+  const car=new THREE.Group();
+  const paint=new THREE.MeshStandardMaterial({color:0xb31f2d,metalness:.25,roughness:.35});
+  const dark=new THREE.MeshStandardMaterial({color:0x11151a,roughness:.3});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(2.4,.65,4.4),paint);
+  body.position.y=.65;body.castShadow=true;car.add(body);
+  const cabin=new THREE.Mesh(new THREE.BoxGeometry(1.8,.65,2.2),new THREE.MeshStandardMaterial({color:0x202d38,metalness:.1,roughness:.2,transparent:true,opacity:.9}));
+  cabin.position.set(0,1.12,-.15);cabin.castShadow=true;car.add(cabin);
+  for(const xw of [-1.25,1.25])for(const zw of [-1.35,1.35]){
+    const w=new THREE.Mesh(new THREE.CylinderGeometry(.38,.38,.22,16),dark);
+    w.rotation.z=Math.PI/2;w.position.set(xw,.4,zw);w.castShadow=true;car.add(w);
+  }
+  car.position.set(x,0,z);car.rotation.y=rot;scene.add(car);
+  return car;
+}
+const car=makeCar(0,12,Math.PI);
+let carNear=false;
+
+function toggleCar(){
+  const dx=player.position.x-car.position.x,dz=player.position.z-car.position.z;
+  if(!state.inCar && Math.hypot(dx,dz)<4){
+    state.inCar=true;state.inside=false;
+    player.visible=false;carNear=false;
+    setMessage("DRIVING • Use joystick to drive");
+  }else if(state.inCar){
+    state.inCar=false;player.visible=true;
+    player.position.set(car.position.x+2.5,0,car.position.z);
+    setMessage("On foot");
+  }
+}
 document.querySelector("#jump").addEventListener("pointerdown",e=>{e.preventDefault();jump()});
-document.querySelector("#interactBtn").addEventListener("pointerdown",e=>{e.preventDefault();enterBuilding()});
+document.querySelector("#interactBtn").addEventListener("pointerdown",e=>{e.preventDefault();if(state.inCar||Math.hypot(player.position.x-car.position.x,player.position.z-car.position.z)<4)toggleCar();else enterBuilding()});
 
 // Joystick
 const joy=document.querySelector("#joystick"),stick=document.querySelector("#stick");
@@ -157,7 +188,7 @@ joy.addEventListener("pointerup",joyEnd);joy.addEventListener("pointercancel",jo
 
 // Desktop fallback
 const keys={};
-addEventListener("keydown",e=>{keys[e.code]=true;if(e.code==="Space")jump();if(e.code==="KeyE")enterBuilding()});
+addEventListener("keydown",e=>{keys[e.code]=true;if(e.code==="Space")jump();if(e.code==="KeyE"){if(state.inCar||Math.hypot(player.position.x-car.position.x,player.position.z-car.position.z)<4)toggleCar();else enterBuilding()}});
 addEventListener("keyup",e=>keys[e.code]=false);
 
 function update(dt){
@@ -169,15 +200,32 @@ function update(dt){
 
   const dir=new THREE.Vector3(mx,0,mz);
   if(dir.lengthSq()>1)dir.normalize();
-  const speed=state.inside?4.5:state.speed;
-  player.position.x+=dir.x*speed*dt;
-  player.position.z+=dir.z*speed*dt;
+  if(state.inCar){
+    const steer=dir.x;
+    const throttle=-dir.z;
+    state.carSpeed=THREE.MathUtils.lerp(state.carSpeed,throttle*13,.08);
+    car.rotation.y-=steer*state.carSpeed*dt*.075;
+    const forward=new THREE.Vector3(Math.sin(car.rotation.y),0,Math.cos(car.rotation.y));
+    car.position.addScaledVector(forward,state.carSpeed*dt);
+    car.position.x=THREE.MathUtils.clamp(car.position.x,-155,155);
+    car.position.z=THREE.MathUtils.clamp(car.position.z,-155,155);
+  }else{
+    const speed=state.inside?4.5:state.speed;
+    player.position.x+=dir.x*speed*dt;
+    player.position.z+=dir.z*speed*dt;
+  }
 
-  if(!state.inside){
+  if(!state.inside && !state.inCar){
     player.position.x=THREE.MathUtils.clamp(player.position.x,-155,155);
     player.position.z=THREE.MathUtils.clamp(player.position.z,-155,155);
     state.vy-=20*dt;player.position.y+=state.vy*dt;
     if(player.position.y<=0){player.position.y=0;state.vy=0;state.onGround=true}
+  }
+  if(state.inCar){
+    const target=new THREE.Vector3(car.position.x,1.2,car.position.z);
+    const camOffset=new THREE.Vector3(0,5.8,9.8).applyAxisAngle(new THREE.Vector3(0,1,0),car.rotation.y);
+    camera.position.lerp(target.clone().add(camOffset),1-Math.pow(.001,dt));
+    camera.lookAt(target);
   }
 
   if(dir.lengthSq()>0.01){
@@ -185,14 +233,25 @@ function update(dt){
     player.rotation.y=THREE.MathUtils.lerp(player.rotation.y,target,.18);
   }
 
+  if(state.inCar){
+    document.querySelector("#interact").style.display="block";
+    document.querySelector("#interact").textContent="EXIT CAR";
+    return;
+  }
   const target=new THREE.Vector3(player.position.x,player.position.y+1.1,player.position.z);
   const camOffset=new THREE.Vector3(0,5.8,9.2);
   camOffset.applyAxisAngle(new THREE.Vector3(0,1,0),player.rotation.y);
   camera.position.lerp(target.clone().add(camOffset),1-Math.pow(.001,dt));
   camera.lookAt(target);
 
-  document.querySelector("#interact").style.display=(!state.inside&&nearEntrance())||state.inside?"block":"none";
-  document.querySelector("#interact").textContent=state.inside?"EXIT BUILDING":"ENTER BUILDING";
+  const dcar=Math.hypot(player.position.x-car.position.x,player.position.z-car.position.z);
+  if(dcar<4 && !state.inCar){
+    document.querySelector("#interact").style.display="block";
+    document.querySelector("#interact").textContent="ENTER CAR";
+  }else{
+    document.querySelector("#interact").style.display=(!state.inside&&nearEntrance())||state.inside?"block":"none";
+    document.querySelector("#interact").textContent=state.inside?"EXIT BUILDING":"ENTER BUILDING";
+  }
 }
 
 function animate(){
