@@ -22,3 +22,6 @@ canvas{display:block;width:100%;height:100%}
 .actions button:active{transform:scale(.94);background:#f4c542;color:#17120a}
 .hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);font-size:10px;opacity:.45;white-space:nowrap}
 @media(min-width:800px){#joystick{left:30px}.actions{right:30px}.hint{bottom:14px}}
+
+
+#wanted{min-width:0;font-size:14px;letter-spacing:1px;text-shadow:0 2px 8px #000}
