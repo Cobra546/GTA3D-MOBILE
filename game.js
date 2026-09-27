@@ -96,34 +96,57 @@ const door=box(3.2,4,.2,new THREE.MeshStandardMaterial({color:0x14171b,roughness
 
 const entrance={x:0,z:-25,inside:false};
 
-// Player — detailed low-poly 3D human character
-function humanCharacter(shirtColor=0x1d232b,skin=0xc58f6d){
+// Player + NPCs — detailed mobile-friendly 3D human characters
+function humanCharacter(shirtColor=0x1d232b,skin=0xc58f6d,female=false){
   const g=new THREE.Group();
-  const shirtMat=new THREE.MeshStandardMaterial({color:shirtColor,roughness:.75});
-  const skinMat=new THREE.MeshStandardMaterial({color:skin,roughness:.85});
-  const pantsMat=new THREE.MeshStandardMaterial({color:0x20252d,roughness:.9});
-  const shoeMat=new THREE.MeshStandardMaterial({color:0x111318,roughness:.65});
-  const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.48,.85,6,12),shirtMat);
-  torso.position.y=1.25;torso.scale.set(.82,1,.48);torso.castShadow=true;g.add(torso);
-  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,.18,10),skinMat);
+  const shirtMat=new THREE.MeshStandardMaterial({color:shirtColor,roughness:.72});
+  const skinMat=new THREE.MeshStandardMaterial({color:skin,roughness:.82});
+  const pantsMat=new THREE.MeshStandardMaterial({color:female?0x343847:0x20252d,roughness:.88});
+  const shoeMat=new THREE.MeshStandardMaterial({color:0x111318,roughness:.62});
+  const hairMat=new THREE.MeshStandardMaterial({color:female?0x241810:0x171411,roughness:.92});
+
+  const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.46,.82,7,14),shirtMat);
+  torso.position.y=1.27;torso.scale.set(.9,1,.55);torso.castShadow=true;g.add(torso);
+
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.15,.17,.2,12),skinMat);
   neck.position.y=1.88;neck.castShadow=true;g.add(neck);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.43,20,14),skinMat);
-  head.position.y=2.25;head.scale.set(.9,1.08,.9);head.castShadow=true;g.add(head);
-  const hair=new THREE.Mesh(new THREE.SphereGeometry(.44,18,10,0,Math.PI*2,0,Math.PI*.45),new THREE.MeshStandardMaterial({color:0x171411,roughness:1}));
-  hair.position.set(0,2.42,0);hair.castShadow=true;g.add(hair);
-  for(const sx of [-.3,.3]){
-    const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.7,5,8),shirtMat);
-    arm.position.set(sx*.98,1.27,0);arm.rotation.z=sx>0?-0.08:0.08;arm.castShadow=true;g.add(arm);
-    const hand=new THREE.Mesh(new THREE.SphereGeometry(.14,10,8),skinMat);
-    hand.position.set(sx*1.02,.82,0);hand.castShadow=true;g.add(hand);
-    const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.15,.78,5,8),pantsMat);
-    leg.position.set(sx*.28,.48,0);leg.castShadow=true;g.add(leg);
-    const shoe=new THREE.Mesh(new THREE.BoxGeometry(.34,.16,.62),shoeMat);
-    shoe.position.set(sx*.28,.08,.12);shoe.castShadow=true;g.add(shoe);
+
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.43,24,16),skinMat);
+  head.position.y=2.25;head.scale.set(.91,1.08,.91);head.castShadow=true;g.add(head);
+
+  // Hair cap
+  const hair=new THREE.Mesh(new THREE.SphereGeometry(.445,22,12,0,Math.PI*2,0,Math.PI*.48),hairMat);
+  hair.position.set(0,2.43,0);hair.castShadow=true;g.add(hair);
+
+  // Face details
+  const eyeMat=new THREE.MeshStandardMaterial({color:0x151515,roughness:.4});
+  for(const sx of [-.16,.16]){
+    const eye=new THREE.Mesh(new THREE.SphereGeometry(.045,10,8),eyeMat);
+    eye.position.set(sx,2.27,.405);eye.castShadow=true;g.add(eye);
   }
+  const nose=new THREE.Mesh(new THREE.ConeGeometry(.055,.13,8),skinMat);
+  nose.rotation.x=Math.PI/2;nose.position.set(0,2.19,.43);g.add(nose);
+  const mouth=new THREE.Mesh(new THREE.BoxGeometry(.13,.025,.018),new THREE.MeshStandardMaterial({color:0x6f3935,roughness:.8}));
+  mouth.position.set(0,2.08,.416);g.add(mouth);
+
+  for(const sx of [-.3,.3]){
+    const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.125,.7,6,10),shirtMat);
+    arm.position.set(sx*1.02,1.28,0);arm.castShadow=true;g.add(arm);
+
+    const hand=new THREE.Mesh(new THREE.SphereGeometry(.14,12,9),skinMat);
+    hand.position.set(sx*1.03,.84,0);hand.castShadow=true;g.add(hand);
+
+    const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.15,.78,6,10),pantsMat);
+    leg.position.set(sx*.28,.47,0);leg.castShadow=true;g.add(leg);
+
+    const shoe=new THREE.Mesh(new THREE.BoxGeometry(.34,.16,.64),shoeMat);
+    shoe.position.set(sx*.28,.08,.13);shoe.castShadow=true;g.add(shoe);
+  }
+  g.userData.anim={walkTime:Math.random()*6,parts:g.children.slice()};
   return g;
 }
-const player=humanCharacter(0x1d232b);
+
+const player=humanCharacter(0x1d232b,0xc58f6d,false);
 player.position.set(0,0,25);scene.add(player);
 
 const state={moveX:0,moveZ:0,vy:0,onGround:true,speed:7,inside:false,inCar:false,carSpeed:0};
@@ -182,7 +205,7 @@ const npcColors=[0x2f6f9f,0x9a4d4d,0x4f8055,0x8a6a3f,0x6d4f86];
 
 function makeNPC(x,z){
   const colors=[0x2f6f9f,0x9a4d4d,0x4f8055,0x8a6a3f,0x6d4f86];
-  const npc=humanCharacter(colors[npcs.length%colors.length],npcs.length%2?0xc58f6d:0x8f5f43);
+  const npc=humanCharacter(colors[npcs.length%colors.length],npcs.length%2?0xc58f6d:0x8f5f43,npcs.length%4===0);
   npc.position.set(x,0,z);scene.add(npc);
   npcs.push({group:npc,dir:new THREE.Vector3(Math.random()-.5,0,Math.random()-.5).normalize(),speed:1.1+Math.random()*.7,turn:1+Math.random()*3});
 }
@@ -246,7 +269,7 @@ function completeMission(){
   setTimeout(missionMessage,1200);
 }
 function resetPlayer(){
-  state.inCar=false;player.visible=true;car.position.set(0,12,Math.PI);car.rotation.y=Math.PI;
+  state.inCar=false;player.visible=true;car.position.set(0,0,12);car.rotation.y=Math.PI;
   player.position.set(0,0,25);health=100;wanted=0;wantedTimer=0;
   document.querySelector("#wanted").textContent="";syncStats();setMessage("Hospital: recovered");
 }
@@ -263,6 +286,20 @@ function addWanted(level=1){
   setMessage("WANTED • Police are searching");
   document.querySelector("#wanted").textContent="⭐".repeat(wanted);
 }
+function animateHuman(model,moving,dt,run=false){
+  const a=model.userData.anim;
+  if(!a)return;
+  a.walkTime+=(moving?(run?11:7)*dt:dt*2);
+  const swing=moving?Math.sin(a.walkTime)*(run?.42:.28):0;
+  const children=model.children;
+  // Known order: torso, neck, head, hair, eyes, eyes, nose, mouth, then limbs.
+  if(children[8])children[8].rotation.x=swing;
+  if(children[9])children[9].rotation.x=-swing;
+  if(children[10])children[10].rotation.x=-swing;
+  if(children[11])children[11].rotation.x=swing;
+  model.position.y += moving ? Math.abs(Math.sin(a.walkTime))*dt*.018 : 0;
+}
+
 function updateNPCs(dt){
   for(const p of npcs){
     p.turn-=dt;
@@ -271,6 +308,7 @@ function updateNPCs(dt){
     if(Math.abs(p.group.position.x)>150||Math.abs(p.group.position.z)>150)p.dir.multiplyScalar(-1);
     p.group.position.x=THREE.MathUtils.clamp(p.group.position.x,-150,150);
     p.group.position.z=THREE.MathUtils.clamp(p.group.position.z,-150,150);
+    animateHuman(p.group,true,dt,false);
   }
   for(const t of traffic){
     const s=t.speed*dt;
@@ -384,6 +422,7 @@ function update(dt){
     camera.lookAt(target);
   }
 
+  animateHuman(player,dir.lengthSq()>0.01,dt,state.inCar===false && dir.lengthSq()>.5);
   if(dir.lengthSq()>0.01){
     const target=Math.atan2(dir.x,dir.z);
     player.rotation.y=THREE.MathUtils.lerp(player.rotation.y,target,.18);
