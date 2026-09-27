@@ -1,0 +1,24 @@
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body,#game{width:100%;height:100%;margin:0;overflow:hidden;background:#090b10}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#fff;touch-action:none}
+canvas{display:block;width:100%;height:100%}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:#090b10;z-index:20;transition:opacity .5s}
+.loader-card{width:min(86vw,360px);text-align:center;padding:26px;border:1px solid #ffffff18;border-radius:22px;background:#11151dcc;backdrop-filter:blur(14px)}
+.logo,.brand{font-weight:900;letter-spacing:.08em}
+.logo{font-size:25px}.logo span,.brand span{color:#f4c542}
+.loader-bar{height:5px;background:#ffffff12;border-radius:99px;margin:20px 0 12px;overflow:hidden}
+.loader-bar i{display:block;height:100%;width:70%;background:#f4c542;border-radius:99px;animation:load 1.3s infinite ease-in-out}
+@keyframes load{0%{transform:translateX(-110%)}100%{transform:translateX(180%)}}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+.topbar{position:absolute;top:max(14px,env(safe-area-inset-top));left:14px;right:14px;display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:14px;text-shadow:0 2px 10px #000}
+.stats{display:flex;gap:8px}.stats div{padding:8px 11px;border-radius:12px;background:#0b0e14cc;border:1px solid #ffffff14;font-size:13px;backdrop-filter:blur(8px)}
+#message{position:absolute;left:50%;top:18%;transform:translateX(-50%);padding:9px 14px;border-radius:999px;background:#090b10b8;border:1px solid #ffffff18;font-size:13px;opacity:.9}
+#interact{display:none;position:absolute;left:50%;bottom:24%;transform:translateX(-50%);padding:11px 16px;border-radius:14px;background:#f4c542;color:#17120a;font-weight:900;font-size:12px;box-shadow:0 8px 30px #0007}
+#joystick{pointer-events:auto;position:absolute;left:18px;bottom:max(28px,env(safe-area-inset-bottom));width:126px;height:126px;border-radius:50%;background:#ffffff10;border:1px solid #ffffff1f;backdrop-filter:blur(6px)}
+#stick{position:absolute;width:54px;height:54px;left:36px;top:36px;border-radius:50%;background:#ffffff2b;border:1px solid #ffffff38;box-shadow:0 6px 18px #0006}
+.actions{pointer-events:auto;position:absolute;right:18px;bottom:max(28px,env(safe-area-inset-bottom));display:flex;gap:12px;align-items:end}
+.actions button{width:64px;height:64px;border:1px solid #ffffff25;border-radius:50%;background:#11151dcc;color:#fff;font-size:27px;font-weight:900;backdrop-filter:blur(8px);box-shadow:0 8px 22px #0006}
+.actions button:active{transform:scale(.94);background:#f4c542;color:#17120a}
+.hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);font-size:10px;opacity:.45;white-space:nowrap}
+@media(min-width:800px){#joystick{left:30px}.actions{right:30px}.hint{bottom:14px}}
