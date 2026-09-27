@@ -78,7 +78,14 @@ for(let x=-135;x<=135;x+=30){
 }
 
 // Landmark building at city center
-const landmark=box(18,12,14,new THREE.MeshStandardMaterial({color:0x1f2833,roughness:.7}),0,6,-15);
+// Landmark storefront: built from walls so the player can actually enter the interior.
+const shopMat=new THREE.MeshStandardMaterial({color:0x1f2833,roughness:.7});
+box(18,.5,14,shopMat,0,.25,-15);
+box(18,8,.5,shopMat,0,4,-22);
+box(18,8,.5,shopMat,0,4,-8);
+box(.5,8,13,shopMat,-8.75,4,-15);
+box(.5,8,13,shopMat,8.75,4,-15);
+box(18,.5,14,shopMat,0,8,-15);
 const signMat=new THREE.MeshStandardMaterial({color:0xf4c542,emissive:0x7a5b00,emissiveIntensity:1.2});
 const sign=box(10,2,.18,signMat,0,9,-22.1);
 const signCanvas=document.createElement("canvas");signCanvas.width=512;signCanvas.height=128;
@@ -91,7 +98,7 @@ const entrance={x:0,z:-25,inside:false};
 
 // Player
 const player=new THREE.Group();
-const body=box(1.15,1.8,new THREE.MeshStandardMaterial({color:0x1d232b}),0,0,0); // temporary, re-parent below
+const body=box(1.15,1.8,.65,new THREE.MeshStandardMaterial({color:0x1d232b}),0,0,0); // temporary, re-parent below
 scene.remove(body);player.add(body);
 body.position.y=.9;body.position.x=0;body.position.z=0;
 const head=new THREE.Mesh(new THREE.SphereGeometry(.46,16,12),new THREE.MeshStandardMaterial({color:0xc58f6d}));
